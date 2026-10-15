@@ -33,6 +33,7 @@
 #include <vector>
 
 #include <robotiq_driver/default_driver_factory.hpp>
+#include <robotiq_driver/driver_exception.hpp>
 #include <robotiq_driver/hardware_interface.hpp>
 
 #include <hardware_interface/actuator_interface.hpp>
@@ -59,11 +60,7 @@ RobotiqGripperHardwareInterface::RobotiqGripperHardwareInterface()
 
 RobotiqGripperHardwareInterface::~RobotiqGripperHardwareInterface()
 {
-  communication_thread_is_running_.store(false);
-  if (communication_thread_.joinable())
-  {
-    communication_thread_.join();
-  }
+  stop_communication_thread();
 }
 
 // This constructor is use for testing only.
@@ -157,7 +154,9 @@ RobotiqGripperHardwareInterface::on_configure(const rclcpp_lifecycle::State& pre
       return CallbackReturn::ERROR;
     }
 
-    // Open the serial port and handshake.
+    // Close a connection left from a previous configuration, then open a new one.
+    driver_->disconnect();
+    communication_error_.store(false);
     bool connected = driver_->connect();
     if (!connected)
     {
@@ -253,12 +252,7 @@ RobotiqGripperHardwareInterface::on_deactivate(const rclcpp_lifecycle::State& /*
 {
   RCLCPP_DEBUG(kLogger, "on_deactivate");
 
-  communication_thread_is_running_.store(false);
-  communication_thread_.join();
-  if (communication_thread_.joinable())
-  {
-    communication_thread_.join();
-  }
+  stop_communication_thread();
 
   try
   {
@@ -273,9 +267,44 @@ RobotiqGripperHardwareInterface::on_deactivate(const rclcpp_lifecycle::State& /*
   return CallbackReturn::SUCCESS;
 }
 
+hardware_interface::CallbackReturn
+RobotiqGripperHardwareInterface::on_cleanup(const rclcpp_lifecycle::State& /*previous_state*/)
+{
+  RCLCPP_DEBUG(kLogger, "on_cleanup");
+
+  driver_->disconnect();
+  return CallbackReturn::SUCCESS;
+}
+
+hardware_interface::CallbackReturn
+RobotiqGripperHardwareInterface::on_shutdown(const rclcpp_lifecycle::State& /*previous_state*/)
+{
+  RCLCPP_DEBUG(kLogger, "on_shutdown");
+
+  stop_communication_thread();
+  driver_->disconnect();
+  return CallbackReturn::SUCCESS;
+}
+
+hardware_interface::CallbackReturn
+RobotiqGripperHardwareInterface::on_error(const rclcpp_lifecycle::State& /*previous_state*/)
+{
+  RCLCPP_DEBUG(kLogger, "on_error");
+
+  stop_communication_thread();
+  driver_->disconnect();
+  RCLCPP_WARN(kLogger, "Robotiq Gripper disconnected. Configure the hardware component again to reconnect.");
+  return CallbackReturn::SUCCESS;
+}
+
 hardware_interface::return_type RobotiqGripperHardwareInterface::read(const rclcpp::Time& /*time*/,
                                                                       const rclcpp::Duration& /*period*/)
 {
+  if (communication_error_.load())
+  {
+    return hardware_interface::return_type::ERROR;
+  }
+
   gripper_position_ = gripper_closed_pos_ * (gripper_current_state_.load() - kGripperMinPos) / kGripperRange;
 
   if (!std::isnan(reactivate_gripper_cmd_))
@@ -332,12 +361,27 @@ void RobotiqGripperHardwareInterface::background_task()
       // Read the state of the gripper.
       gripper_current_state_.store(this->driver_->get_gripper_position());
     }
+    catch (const TransportException& e)
+    {
+      RCLCPP_ERROR(kLogger, "Connection to the gripper lost: %s", e.what());
+      communication_error_.store(true);
+      return;
+    }
     catch (std::exception& e)
     {
       RCLCPP_ERROR(kLogger, "Error: %s", e.what());
     }
 
     std::this_thread::sleep_for(kGripperCommsLoopPeriod);
+  }
+}
+
+void RobotiqGripperHardwareInterface::stop_communication_thread()
+{
+  communication_thread_is_running_.store(false);
+  if (communication_thread_.joinable())
+  {
+    communication_thread_.join();
   }
 }
 

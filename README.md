@@ -8,6 +8,45 @@ Initially this repo supported only the 2f-85 however we want to also support the
 - https://github.com/PickNikRobotics/ros2_epick_gripper
 
 
+
+## Serial and TCP communication
+
+Serial communication is the default:
+
+```bash
+ros2 launch robotiq_description robotiq_control.launch.py com_port:=/dev/ttyUSB0
+```
+
+A gripper on the UR tool RS-485 interface can be used over TCP through the
+[UR Tool Communication Forwarder](https://github.com/UniversalRobots/Universal_Robots_ToolComm_Forwarder_URCap).
+Configure tool voltage, baud rate, parity and stop bits on the robot. Then connect:
+
+```bash
+ros2 launch robotiq_description robotiq_control.launch.py \
+  transport:=tcp tcp_host:=192.168.1.100 tcp_port:=54321
+```
+
+The data is raw Modbus RTU (with CRC) over TCP, not Modbus TCP.
+No `socat` or `tool_communication.py` is needed on the PC.
+Use only one client of the forwarder: disable `use_tool_communication` in the UR ROS driver
+and the Robotiq Grippers URCap.
+
+| Xacro / launch parameter | Default | Description |
+| --- | --- | --- |
+| `transport` | `serial` | `serial` or `tcp` |
+| `tcp_host` | empty | Numeric IPv4 or IPv6 address of the robot (required for TCP) |
+| `tcp_port` | `54321` | Port of the forwarder |
+| `timeout` | `0.5` | Communication timeout in seconds |
+| `com_port` | `/dev/ttyUSB0` | Serial device (ignored for TCP) |
+
+The hardware component opens the connection in `on_configure`.
+When the TCP connection is lost, `read()` returns an error and the component goes to `unconfigured`.
+To reconnect, activate the component again:
+
+```bash
+ros2 control set_hardware_component_state <gripper_component_name> active
+```
+
 ## Build status
 
 Currently the `main` branch is used for all current releases: Humble, Iron and Rolling.
