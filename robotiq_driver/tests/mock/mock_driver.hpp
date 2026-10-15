@@ -41,6 +41,7 @@ class MockDriver : public robotiq_driver::Driver
 public:
   MOCK_METHOD(bool, connect, (), (override));
   MOCK_METHOD(void, disconnect, (), (override));
+  MOCK_METHOD(bool, is_connected, (), (const, override));
   MOCK_METHOD(void, activate, (), (override));
   MOCK_METHOD(void, deactivate, (), (override));
   MOCK_METHOD(void, set_slave_address, (uint8_t slave_address), (override));

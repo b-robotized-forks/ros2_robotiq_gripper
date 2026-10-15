@@ -37,13 +37,13 @@ add_library(
   include/robotiq_driver/default_driver.hpp
   include/robotiq_driver/default_driver_factory.hpp
   include/robotiq_driver/default_serial.hpp
-  include/robotiq_driver/default_serial_factory.hpp
+  include/robotiq_driver/default_transport_factory.hpp
   include/robotiq_driver/driver.hpp
   include/robotiq_driver/driver_exception.hpp
   include/robotiq_driver/driver_factory.hpp
   include/robotiq_driver/hardware_interface.hpp
-  include/robotiq_driver/serial.hpp
-  include/robotiq_driver/serial_factory.hpp
+  include/robotiq_driver/transport.hpp
+  include/robotiq_driver/transport_factory.hpp
   include/robotiq_driver/visibility_control.hpp
   src/crc_utils.cpp
   src/data_utils.cpp
@@ -51,8 +51,9 @@ add_library(
   src/default_driver.cpp
   src/default_driver_factory.cpp
   src/fake/fake_driver.cpp
+  src/tcp_transport.cpp
   src/default_serial.cpp
-  src/default_serial_factory.cpp
+  src/default_transport_factory.cpp
 )
 target_link_libraries(robotiq_driver atomic)
 target_include_directories(

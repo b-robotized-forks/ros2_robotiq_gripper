@@ -34,7 +34,7 @@
 #include <string>
 #include <vector>
 
-#include <robotiq_driver/serial.hpp>
+#include <robotiq_driver/transport.hpp>
 
 namespace serial
 {
@@ -43,7 +43,7 @@ class Serial;
 
 namespace robotiq_driver
 {
-class DefaultSerial : public Serial
+class DefaultSerial : public Transport
 {
 public:
   /**
@@ -61,14 +61,14 @@ public:
   [[nodiscard]] std::vector<uint8_t> read(size_t size = 1) override;
   void write(const std::vector<uint8_t>& data) override;
 
-  void set_port(const std::string& port) override;
-  [[nodiscard]] std::string get_port() const override;
+  void set_port(const std::string& port);
+  [[nodiscard]] std::string get_port() const;
 
   void set_timeout(std::chrono::milliseconds timeout_ms) override;
   [[nodiscard]] std::chrono::milliseconds get_timeout() const override;
 
-  void set_baudrate(uint32_t baudrate) override;
-  [[nodiscard]] uint32_t get_baudrate() const override;
+  void set_baudrate(uint32_t baudrate);
+  [[nodiscard]] uint32_t get_baudrate() const;
 
 private:
   std::unique_ptr<serial::Serial> serial_ = nullptr;

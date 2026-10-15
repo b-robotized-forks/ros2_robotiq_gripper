@@ -4,11 +4,18 @@
     <xacro:arg name="use_fake_hardware" default="true" />
     <xacro:arg name="com_port" default="/dev/ttyUSB0" />
 
+    <xacro:arg name="transport" default="serial" />
+    <xacro:arg name="tcp_host" default="" />
+    <xacro:arg name="tcp_port" default="54321" />
+    <xacro:arg name="timeout" default="0.5" />
+
     <!-- Import macros -->
     <xacro:include filename="$(find robotiq_description)/urdf/robotiq_2f_140_macro.urdf.xacro" />
 
     <link name="world" />
-    <xacro:robotiq_gripper name="RobotiqGripperHardwareInterface" prefix="" parent="world" use_fake_hardware="$(arg use_fake_hardware)" com_port="$(arg com_port)">
+    <xacro:robotiq_gripper name="RobotiqGripperHardwareInterface" prefix="" parent="world" use_fake_hardware="$(arg use_fake_hardware)" com_port="$(arg com_port)"
+        transport="$(arg transport)" tcp_host="$(arg tcp_host)"
+        tcp_port="$(arg tcp_port)" timeout="$(arg timeout)">
         <origin xyz="0 0 0" rpy="0 0 0" />
     </xacro:robotiq_gripper>
 </robot>

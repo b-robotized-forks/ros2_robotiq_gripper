@@ -1,4 +1,4 @@
-// Copyright (c) 2023 PickNik, Inc.
+// Copyright (c) 2026 b»robotized group
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -10,7 +10,7 @@
 //      notice, this list of conditions and the following disclaimer in the
 //      documentation and/or other materials provided with the distribution.
 //
-//    * Neither the name of the {copyright_holder} nor the names of its
+//    * Neither the name of the copyright holder nor the names of its
 //      contributors may be used to endorse or promote products derived from
 //      this software without specific prior written permission.
 //
@@ -28,31 +28,41 @@
 
 #pragma once
 
-#include <memory>
+#include <robotiq_driver/transport.hpp>
 
-#include <robotiq_driver/serial_factory.hpp>
-#include <robotiq_driver/default_serial_factory.hpp>
-#include <hardware_interface/hardware_info.hpp>
+#include <string>
 
 namespace robotiq_driver
 {
-/**
- * This class is used to create a default driver to interact with the hardware.
+/** Raw Modbus RTU byte transport over TCP, e.g. UR tool forwarding on port 54321.
+ * Baud rate is configured on the remote RS-485 interface, not through this socket.
  */
-class DefaultSerialFactory : public SerialFactory
+class TcpTransport : public Transport
 {
 public:
-  DefaultSerialFactory() = default;
+  TcpTransport(const std::string& host, uint16_t port);
+  ~TcpTransport() override;
+  TcpTransport(const TcpTransport&) = delete;
+  TcpTransport& operator=(const TcpTransport&) = delete;
 
-  /**
-   * @brief Create a serial interface.
-   * @param info The hardware information.
-   * @return A sarial interface to communicate with the hardware.
-   */
-  std::unique_ptr<Serial> create(const hardware_interface::HardwareInfo& info) const;
+  void open() override;
+  [[nodiscard]] bool is_open() const override;
+  void close() override;
+  [[nodiscard]] std::vector<uint8_t> read(size_t size) override;
+  void write(const std::vector<uint8_t>& data) override;
+  void set_timeout(std::chrono::milliseconds timeout) override;
+  [[nodiscard]] std::chrono::milliseconds get_timeout() const override;
+  [[nodiscard]] std::string get_host() const;
+  [[nodiscard]] uint16_t get_port() const;
 
-protected:
-  // Seam for testing.
-  virtual std::unique_ptr<Serial> create_serial() const;
+private:
+  using Deadline = std::chrono::steady_clock::time_point;
+  void wait_ready(short events, Deadline deadline);
+  [[noreturn]] void fail(const std::string& message);
+
+  std::string host_;
+  uint16_t port_;
+  std::chrono::milliseconds timeout_{ 500 };
+  int socket_{ -1 };
 };
 }  // namespace robotiq_driver

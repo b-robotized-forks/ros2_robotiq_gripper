@@ -38,6 +38,8 @@ namespace robotiq_driver
 class Driver
 {
 public:
+  virtual ~Driver() = default;
+
   enum class ActivationStatus
   {
     RESET,
@@ -72,6 +74,9 @@ public:
 
   /** Disconnect from the gripper serial connection. */
   virtual void disconnect() = 0;
+
+  /** @return True if the connection to the gripper is open. */
+  [[nodiscard]] virtual bool is_connected() const = 0;
 
   /**
    * @brief Activates the gripper.

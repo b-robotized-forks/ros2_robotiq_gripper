@@ -33,7 +33,7 @@
 #include <vector>
 
 #include <robotiq_driver/driver.hpp>
-#include <robotiq_driver/serial.hpp>
+#include <robotiq_driver/transport.hpp>
 
 /**
  * @brief This class is responsible for communicating with the gripper via a serial port, and maintaining a record of
@@ -45,10 +45,11 @@ namespace robotiq_driver
 class DefaultDriver : public Driver
 {
 public:
-  explicit DefaultDriver(std::unique_ptr<Serial> serial);
+  explicit DefaultDriver(std::unique_ptr<Transport> transport);
 
   bool connect() override;
   void disconnect() override;
+  [[nodiscard]] bool is_connected() const override;
 
   void set_slave_address(uint8_t slave_address) override;
 
@@ -110,7 +111,7 @@ private:
    */
   void update_status();
 
-  std::unique_ptr<Serial> serial_ = nullptr;
+  std::unique_ptr<Transport> transport_ = nullptr;
   uint8_t slave_address_;
 
   ActivationStatus activation_status_;

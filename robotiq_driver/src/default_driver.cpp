@@ -74,8 +74,8 @@ constexpr size_t kPositionIndex = 4;
 // If the gripper connection is not stable we may want to try sending the command again.
 constexpr auto kMaxRetries = 5;
 
-DefaultDriver::DefaultDriver(std::unique_ptr<Serial> serial)
-  : serial_{ std::move(serial) }, commanded_gripper_speed_(0x80), commanded_gripper_force_(0x80)
+DefaultDriver::DefaultDriver(std::unique_ptr<Transport> transport)
+  : transport_{ std::move(transport) }, commanded_gripper_speed_(0x80), commanded_gripper_force_(0x80)
 {
 }
 
@@ -89,8 +89,8 @@ std::vector<uint8_t> DefaultDriver::send(const std::vector<uint8_t>& request, si
   {
     try
     {
-      serial_->write(request);
-      response = serial_->read(response_size);
+      transport_->write(request);
+      response = transport_->read(response_size);
       break;
     }
     catch (const serial::IOException& e)
@@ -112,13 +112,18 @@ std::vector<uint8_t> DefaultDriver::send(const std::vector<uint8_t>& request, si
 
 bool DefaultDriver::connect()
 {
-  serial_->open();
-  return serial_->is_open();
+  transport_->open();
+  return transport_->is_open();
 }
 
 void DefaultDriver::disconnect()
 {
-  serial_->close();
+  transport_->close();
+}
+
+bool DefaultDriver::is_connected() const
+{
+  return transport_->is_open();
 }
 
 void DefaultDriver::set_slave_address(uint8_t slave_address)

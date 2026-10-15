@@ -28,28 +28,28 @@
 
 #pragma once
 
-#include <gmock/gmock.h>
+#include <memory>
 
-#include <string>
-#include <vector>
+#include <robotiq_driver/transport.hpp>
 
-#include "robotiq_driver/serial.hpp"
+#include <hardware_interface/hardware_info.hpp>
 
-namespace robotiq_driver::test
+namespace robotiq_driver
 {
-class MockSerial : public robotiq_driver::Serial
+/**
+ * This factory is used to create and configure a Transport interface
+ * implementation that is used by the driver to interact with the hardware.
+ * A factory is used to keep the code cleaner but also to simplify testing.
+ * With a factory, we can test that the parameters read by the hardware
+ * interface are correctly parsed and passed down to the transport interface.
+ * A factory can also be mocked to return different implementation of the
+ * transport interface (or mocks) that do not require interaction with the real
+ * hardware.
+ */
+class TransportFactory
 {
 public:
-  MOCK_METHOD(void, open, (), (override));
-  MOCK_METHOD(bool, is_open, (), (override, const));
-  MOCK_METHOD(void, close, (), (override));
-  MOCK_METHOD(std::vector<uint8_t>, read, (size_t size), (override));
-  MOCK_METHOD(void, write, (const std::vector<uint8_t>& buffer), (override));
-  MOCK_METHOD(void, set_port, (const std::string& port), (override));
-  MOCK_METHOD(std::string, get_port, (), (override, const));
-  MOCK_METHOD(void, set_timeout, (std::chrono::milliseconds timeout), (override));
-  MOCK_METHOD(std::chrono::milliseconds, get_timeout, (), (override, const));
-  MOCK_METHOD(void, set_baudrate, (uint32_t baudrate), (override));
-  MOCK_METHOD(uint32_t, get_baudrate, (), (override, const));
+  virtual std::unique_ptr<Transport> create(const hardware_interface::HardwareInfo& info) const = 0;
 };
-}  // namespace robotiq_driver::test
+
+}  // namespace robotiq_driver

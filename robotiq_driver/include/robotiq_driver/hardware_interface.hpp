@@ -117,6 +117,31 @@ public:
   CallbackReturn on_deactivate(const rclcpp_lifecycle::State& previous_state) override;
 
   /**
+   * Close the connection to the hardware.
+   * @param previous_state Inactive.
+   * @returns CallbackReturn::SUCCESS.
+   */
+  ROBOTIQ_DRIVER_PUBLIC
+  CallbackReturn on_cleanup(const rclcpp_lifecycle::State& previous_state) override;
+
+  /**
+   * Stop the communication and close the connection to the hardware.
+   * @param previous_state Unconfigured, Inactive or Active.
+   * @returns CallbackReturn::SUCCESS.
+   */
+  ROBOTIQ_DRIVER_PUBLIC
+  CallbackReturn on_shutdown(const rclcpp_lifecycle::State& previous_state) override;
+
+  /**
+   * Stop the communication and close the connection to the hardware.
+   * The component goes to Unconfigured. Configure it again to reconnect.
+   * @param previous_state The state in which the error occurred.
+   * @returns CallbackReturn::SUCCESS.
+   */
+  ROBOTIQ_DRIVER_PUBLIC
+  CallbackReturn on_error(const rclcpp_lifecycle::State& previous_state) override;
+
+  /**
    * Read data from the hardware.
    */
   ROBOTIQ_DRIVER_PUBLIC
@@ -138,7 +163,10 @@ protected:
   // We use a thread to read/write to the driver so that we dont block the hardware_interface read/write.
   std::thread communication_thread_;
   std::atomic<bool> communication_thread_is_running_;
+  // Set by the background thread when the connection to the gripper is lost.
+  std::atomic<bool> communication_error_{ false };
   void background_task();
+  void stop_communication_thread();
 
   double gripper_closed_pos_ = 0.0;
   double gripper_max_speed_ = 0.0;

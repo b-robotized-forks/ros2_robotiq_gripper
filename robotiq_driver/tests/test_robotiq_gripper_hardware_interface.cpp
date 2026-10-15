@@ -26,7 +26,17 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
+
+#include <robotiq_driver/driver_exception.hpp>
+#include <robotiq_driver/driver_factory.hpp>
+#include <robotiq_driver/hardware_interface.hpp>
+
+#include <mock/mock_driver.hpp>
+
+#include <chrono>
+#include <thread>
 
 #include <hardware_interface/resource_manager.hpp>
 #if __has_include(<hardware_interface/hardware_interface/version.h>)
@@ -91,11 +101,111 @@ TEST(TestRobotiqGripperHardwareInterface, load_urdf)
   EXPECT_EQ(1u, rm.system_components_size());
 }
 
+class StubDriverFactory : public DriverFactory
+{
+public:
+  explicit StubDriverFactory(std::unique_ptr<Driver> driver) : driver_{ std::move(driver) }
+  {
+  }
+
+  std::unique_ptr<Driver> create(const hardware_interface::HardwareInfo& /*info*/) const override
+  {
+    return std::move(driver_);
+  }
+
+private:
+  mutable std::unique_ptr<Driver> driver_;
+};
+
+class TestRobotiqGripperLifecycle : public testing::Test
+{
+protected:
+  void SetUp() override
+  {
+    auto driver = std::make_unique<testing::NiceMock<MockDriver>>();
+    driver_ = driver.get();
+    ON_CALL(*driver_, connect()).WillByDefault(testing::Return(true));
+    ON_CALL(*driver_, is_connected()).WillByDefault(testing::Return(true));
+    hardware_ =
+        std::make_unique<RobotiqGripperHardwareInterface>(std::make_unique<StubDriverFactory>(std::move(driver)));
+
+    hardware_interface::ComponentInfo joint;
+    joint.name = "robotiq_85_left_knuckle_joint";
+    hardware_interface::InterfaceInfo position;
+    position.name = "position";
+    hardware_interface::InterfaceInfo velocity;
+    velocity.name = "velocity";
+    joint.command_interfaces = { position };
+    joint.state_interfaces = { position, velocity };
+    hardware_interface::HardwareComponentInterfaceParams params;
+    params.hardware_info.name = "robotiq_gripper";
+    params.hardware_info.hardware_parameters = { { "gripper_closed_position", "0.7929" } };
+    params.hardware_info.joints = { joint };
+    ASSERT_EQ(hardware_->on_init(params), hardware_interface::CallbackReturn::SUCCESS);
+  }
+
+  testing::NiceMock<MockDriver>* driver_;
+  std::unique_ptr<RobotiqGripperHardwareInterface> hardware_;
+  const rclcpp_lifecycle::State state_;
+};
+
+TEST_F(TestRobotiqGripperLifecycle, configure_opens_new_connection)
+{
+  testing::InSequence sequence;
+  EXPECT_CALL(*driver_, disconnect());
+  EXPECT_CALL(*driver_, connect()).WillOnce(testing::Return(true));
+  EXPECT_CALL(*driver_, disconnect());
+  EXPECT_CALL(*driver_, connect()).WillOnce(testing::Return(true));
+
+  EXPECT_EQ(hardware_->on_configure(state_), hardware_interface::CallbackReturn::SUCCESS);
+  EXPECT_EQ(hardware_->on_configure(state_), hardware_interface::CallbackReturn::SUCCESS);
+}
+
+TEST_F(TestRobotiqGripperLifecycle, configure_fails_without_connection)
+{
+  EXPECT_CALL(*driver_, connect()).WillOnce(testing::Return(false));
+  EXPECT_EQ(hardware_->on_configure(state_), hardware_interface::CallbackReturn::ERROR);
+}
+
+TEST_F(TestRobotiqGripperLifecycle, connection_loss_is_reported_and_reconnected)
+{
+  const rclcpp::Time time;
+  const rclcpp::Duration period{ std::chrono::milliseconds(10) };
+  ASSERT_EQ(hardware_->on_configure(state_), hardware_interface::CallbackReturn::SUCCESS);
+  hardware_->export_state_interfaces();
+  hardware_->export_command_interfaces();
+
+  EXPECT_CALL(*driver_, set_gripper_position(testing::_))
+      .WillOnce(testing::Throw(DriverException("command failed")))
+      .WillOnce(testing::Throw(DriverException("connection lost")))
+      .WillRepeatedly(testing::Return());
+  EXPECT_CALL(*driver_, is_connected()).WillOnce(testing::Return(true)).WillOnce(testing::Return(false));
+  ASSERT_EQ(hardware_->on_activate(state_), hardware_interface::CallbackReturn::SUCCESS);
+
+  auto result = hardware_interface::return_type::OK;
+  const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+  while (result == hardware_interface::return_type::OK && std::chrono::steady_clock::now() < deadline)
+  {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    result = hardware_->read(time, period);
+  }
+  EXPECT_EQ(result, hardware_interface::return_type::ERROR);
+
+  EXPECT_CALL(*driver_, disconnect()).Times(testing::AtLeast(1));
+  EXPECT_EQ(hardware_->on_error(state_), hardware_interface::CallbackReturn::SUCCESS);
+
+  EXPECT_CALL(*driver_, connect()).WillOnce(testing::Return(true));
+  EXPECT_EQ(hardware_->on_configure(state_), hardware_interface::CallbackReturn::SUCCESS);
+  EXPECT_EQ(hardware_->read(time, period), hardware_interface::return_type::OK);
+}
+
 }  // namespace robotiq_driver::test
 
 int main(int argc, char** argv)
 {
   rclcpp::init(argc, argv);
   testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
+  const int result = RUN_ALL_TESTS();
+  rclcpp::shutdown();
+  return result;
 }
