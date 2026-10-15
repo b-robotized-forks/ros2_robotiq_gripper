@@ -75,6 +75,9 @@ public:
   /** Disconnect from the gripper serial connection. */
   virtual void disconnect() = 0;
 
+  /** @return True if the connection to the gripper is open. */
+  [[nodiscard]] virtual bool is_connected() const = 0;
+
   /**
    * @brief Activates the gripper.
    * @throw serial::IOException on failure to successfully communicate with gripper port

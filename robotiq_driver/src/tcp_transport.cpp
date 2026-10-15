@@ -138,7 +138,7 @@ void TcpTransport::wait_ready(short events, Deadline deadline)
   {
     if (!is_open())
     {
-      throw TransportException("TCP transport is closed");
+      throw DriverException("TCP transport is closed");
     }
     const auto remaining = deadline - std::chrono::steady_clock::now();
     if (remaining <= Deadline::duration::zero())
@@ -243,6 +243,6 @@ void TcpTransport::fail(const std::string& message)
   // Never retry on a stream with an incomplete response: delayed bytes could be
   // mistaken for the next reply. Reconnect through the hardware lifecycle instead.
   close();
-  throw TransportException("TCP " + host_ + ":" + std::to_string(port_) + ": " + message);
+  throw DriverException("TCP " + host_ + ":" + std::to_string(port_) + ": " + message);
 }
 }  // namespace robotiq_driver

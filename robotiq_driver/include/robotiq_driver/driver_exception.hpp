@@ -63,14 +63,4 @@ public:
     return what_.c_str();
   }
 };
-
-/**
- * Thrown when the connection to the gripper is lost.
- * The connection must be opened again, e.g. by configuring the hardware component.
- */
-class TransportException : public DriverException
-{
-public:
-  using DriverException::DriverException;
-};
 }  // namespace robotiq_driver

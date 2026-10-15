@@ -33,7 +33,6 @@
 #include <vector>
 
 #include <robotiq_driver/default_driver_factory.hpp>
-#include <robotiq_driver/driver_exception.hpp>
 #include <robotiq_driver/hardware_interface.hpp>
 
 #include <hardware_interface/actuator_interface.hpp>
@@ -361,15 +360,15 @@ void RobotiqGripperHardwareInterface::background_task()
       // Read the state of the gripper.
       gripper_current_state_.store(this->driver_->get_gripper_position());
     }
-    catch (const TransportException& e)
-    {
-      RCLCPP_ERROR(kLogger, "Connection to the gripper lost: %s", e.what());
-      communication_error_.store(true);
-      return;
-    }
     catch (std::exception& e)
     {
       RCLCPP_ERROR(kLogger, "Error: %s", e.what());
+      if (!driver_->is_connected())
+      {
+        RCLCPP_ERROR(kLogger, "Connection to the gripper lost.");
+        communication_error_.store(true);
+        return;
+      }
     }
 
     std::this_thread::sleep_for(kGripperCommsLoopPeriod);

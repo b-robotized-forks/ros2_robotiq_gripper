@@ -49,6 +49,7 @@ public:
   void set_slave_address(uint8_t slave_address) override;
   bool connect() override;
   void disconnect() override;
+  [[nodiscard]] bool is_connected() const override;
   void activate() override;
   void deactivate() override;
   void set_gripper_position(uint8_t position) override;

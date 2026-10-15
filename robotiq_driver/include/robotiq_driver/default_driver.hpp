@@ -49,6 +49,7 @@ public:
 
   bool connect() override;
   void disconnect() override;
+  [[nodiscard]] bool is_connected() const override;
 
   void set_slave_address(uint8_t slave_address) override;
 

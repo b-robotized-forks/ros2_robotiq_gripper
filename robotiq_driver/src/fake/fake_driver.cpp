@@ -53,6 +53,11 @@ void FakeDriver::disconnect()
   connected_ = false;
 }
 
+bool FakeDriver::is_connected() const
+{
+  return connected_;
+}
+
 void FakeDriver::activate()
 {
   RCLCPP_INFO(kLogger, "Gripper activated.");

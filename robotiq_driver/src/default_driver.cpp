@@ -121,6 +121,11 @@ void DefaultDriver::disconnect()
   transport_->close();
 }
 
+bool DefaultDriver::is_connected() const
+{
+  return transport_->is_open();
+}
+
 void DefaultDriver::set_slave_address(uint8_t slave_address)
 {
   slave_address_ = slave_address;

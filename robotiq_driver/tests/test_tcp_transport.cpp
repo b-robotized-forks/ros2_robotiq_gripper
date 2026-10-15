@@ -196,7 +196,7 @@ TEST_F(TcpTransportTest, ReconnectsAfterConnectionLoss)
 {
   ::close(peer_);
   peer_ = -1;
-  EXPECT_THROW(connection_->read(1), TransportException);
+  EXPECT_THROW(connection_->read(1), DriverException);
   EXPECT_FALSE(connection_->is_open());
 
   connection_->open();

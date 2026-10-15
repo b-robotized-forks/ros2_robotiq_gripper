@@ -125,6 +125,7 @@ protected:
     auto driver = std::make_unique<testing::NiceMock<MockDriver>>();
     driver_ = driver.get();
     ON_CALL(*driver_, connect()).WillByDefault(testing::Return(true));
+    ON_CALL(*driver_, is_connected()).WillByDefault(testing::Return(true));
     hardware_ =
         std::make_unique<RobotiqGripperHardwareInterface>(std::make_unique<StubDriverFactory>(std::move(driver)));
 
@@ -175,8 +176,10 @@ TEST_F(TestRobotiqGripperLifecycle, connection_loss_is_reported_and_reconnected)
   hardware_->export_command_interfaces();
 
   EXPECT_CALL(*driver_, set_gripper_position(testing::_))
-      .WillOnce(testing::Throw(TransportException("connection lost")))
+      .WillOnce(testing::Throw(DriverException("command failed")))
+      .WillOnce(testing::Throw(DriverException("connection lost")))
       .WillRepeatedly(testing::Return());
+  EXPECT_CALL(*driver_, is_connected()).WillOnce(testing::Return(true)).WillOnce(testing::Return(false));
   ASSERT_EQ(hardware_->on_activate(state_), hardware_interface::CallbackReturn::SUCCESS);
 
   auto result = hardware_interface::return_type::OK;
