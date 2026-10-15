@@ -32,7 +32,7 @@
 #include <robotiq_driver/default_driver_factory.hpp>
 #include <robotiq_driver/default_driver.hpp>
 #include <robotiq_driver/default_serial.hpp>
-#include <robotiq_driver/default_serial_factory.hpp>
+#include <robotiq_driver/default_transport_factory.hpp>
 #include <robotiq_driver/fake/fake_driver.hpp>
 
 #include <rclcpp/logging.hpp>
@@ -94,8 +94,8 @@ std::unique_ptr<Driver> DefaultDriverFactory::create_driver(const hardware_inter
   }
   else
   {
-    auto serial = DefaultSerialFactory().create(info);
-    return std::make_unique<DefaultDriver>(std::move(serial));
+    auto transport = DefaultTransportFactory().create(info);
+    return std::make_unique<DefaultDriver>(std::move(transport));
   }
 }
 }  // namespace robotiq_driver

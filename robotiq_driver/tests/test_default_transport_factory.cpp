@@ -28,105 +28,80 @@
 
 #include <gtest/gtest.h>
 
-#include <robotiq_driver/default_serial_factory.hpp>
+#include <robotiq_driver/default_serial.hpp>
+#include <robotiq_driver/default_transport_factory.hpp>
 #include <robotiq_driver/tcp_transport.hpp>
-
-#include <mock/mock_serial.hpp>
 
 #include <hardware_interface/hardware_info.hpp>
 
 namespace robotiq_driver::test
 {
-// This factory will populate the injected mock with data read form the HardwareInfo.
-class StubSerialFactory : public DefaultSerialFactory
-{
-public:
-  explicit StubSerialFactory(std::unique_ptr<MockSerial> serial) : serial_{ std::move(serial) }
-  {
-  }
-
-protected:
-  std::unique_ptr<Serial> create_serial() const override
-  {
-    return std::move(serial_);
-  }
-
-private:
-  mutable std::unique_ptr<MockSerial> serial_;
-};
-
 /**
- * Here we test the serial factory with default parameters.
+ * Here we test the transport factory with default parameters.
  */
-TEST(TestDefaultSerialFactory, create_with_default_parameters)
+TEST(TestDefaultTransportFactory, create_with_default_parameters)
 {
   hardware_interface::HardwareInfo info;
 
-  auto serial = std::make_unique<MockSerial>();
-
-  // This line is only required when running the test inside the IDE.
-  testing::Mock::AllowLeak(serial.get());
-
-  EXPECT_CALL(*serial, set_port("/dev/ttyUSB0"));
-  EXPECT_CALL(*serial, set_baudrate(115200));
-  EXPECT_CALL(*serial, set_timeout(std::chrono::milliseconds{ 500 }));
-
-  StubSerialFactory serial_factory(std::move(serial));
-  auto created_serial = serial_factory.create(info);
+  auto transport = DefaultTransportFactory().create(info);
+  auto* serial = dynamic_cast<DefaultSerial*>(transport.get());
+  ASSERT_NE(serial, nullptr);
+  EXPECT_EQ(serial->get_port(), "/dev/ttyUSB0");
+  EXPECT_EQ(serial->get_baudrate(), 115200u);
+  EXPECT_EQ(serial->get_timeout(), std::chrono::milliseconds{ 500 });
+  EXPECT_FALSE(serial->is_open());
 }
 
 /**
- * Here we test the serial factory with default parameters.
+ * Here we test the transport factory with given serial parameters.
  */
-TEST(TestDefaultSerialFactory, create_with_given_parameters)
+TEST(TestDefaultTransportFactory, create_with_given_parameters)
 {
   hardware_interface::HardwareInfo info;
   info.hardware_parameters.emplace("COM_port", "/dev/ttyUSB1");
   info.hardware_parameters.emplace("baudrate", "9600");
   info.hardware_parameters.emplace("timeout", "0.1");
 
-  auto serial = std::make_unique<MockSerial>();
-
-  // This line is only required when running the test inside the IDE.
-  testing::Mock::AllowLeak(serial.get());
-
-  EXPECT_CALL(*serial, set_port("/dev/ttyUSB1"));
-  EXPECT_CALL(*serial, set_baudrate(9600));
-  EXPECT_CALL(*serial, set_timeout(std::chrono::milliseconds(100)));
-
-  StubSerialFactory serial_factory(std::move(serial));
-  auto created_serial = serial_factory.create(info);
+  auto transport = DefaultTransportFactory().create(info);
+  auto* serial = dynamic_cast<DefaultSerial*>(transport.get());
+  ASSERT_NE(serial, nullptr);
+  EXPECT_EQ(serial->get_port(), "/dev/ttyUSB1");
+  EXPECT_EQ(serial->get_baudrate(), 9600u);
+  EXPECT_EQ(serial->get_timeout(), std::chrono::milliseconds(100));
 }
 
-TEST(TestDefaultSerialFactory, creates_tcp_transport)
+TEST(TestDefaultTransportFactory, creates_tcp_transport)
 {
   hardware_interface::HardwareInfo info;
   info.hardware_parameters = { { "transport", "tcp" }, { "tcp_host", "127.0.0.1" }, { "timeout", "0.1" } };
-  auto connection = DefaultSerialFactory().create(info);
-  EXPECT_NE(dynamic_cast<TcpTransport*>(connection.get()), nullptr);
-  EXPECT_EQ(connection->get_port(), "127.0.0.1");
-  EXPECT_EQ(connection->get_timeout(), std::chrono::milliseconds(100));
-  EXPECT_FALSE(connection->is_open());
+
+  auto transport = DefaultTransportFactory().create(info);
+  auto* tcp = dynamic_cast<TcpTransport*>(transport.get());
+  ASSERT_NE(tcp, nullptr);
+  EXPECT_EQ(tcp->get_host(), "127.0.0.1");
+  EXPECT_EQ(tcp->get_port(), 54321);
+  EXPECT_EQ(tcp->get_timeout(), std::chrono::milliseconds(100));
+  EXPECT_FALSE(tcp->is_open());
 }
 
-TEST(TestDefaultSerialFactory, rejects_invalid_tcp_configuration)
+TEST(TestDefaultTransportFactory, rejects_invalid_tcp_configuration)
 {
   hardware_interface::HardwareInfo info;
   info.hardware_parameters = { { "transport", "udp" } };
-  EXPECT_THROW(DefaultSerialFactory().create(info), std::invalid_argument);
+  EXPECT_THROW(DefaultTransportFactory().create(info), std::invalid_argument);
   info.hardware_parameters = { { "transport", "tcp" } };
-  EXPECT_THROW(DefaultSerialFactory().create(info), std::invalid_argument);
+  EXPECT_THROW(DefaultTransportFactory().create(info), std::invalid_argument);
   info.hardware_parameters["tcp_host"] = "127.0.0.1";
   for (const auto* port : { "0", "65536", "-1", "54321oops", "" })
   {
     info.hardware_parameters["tcp_port"] = port;
-    EXPECT_THROW(DefaultSerialFactory().create(info), std::invalid_argument);
+    EXPECT_THROW(DefaultTransportFactory().create(info), std::invalid_argument);
   }
   info.hardware_parameters["tcp_port"] = "54321";
   for (const auto* timeout : { "0", "-1", "nan", "inf" })
   {
     info.hardware_parameters["timeout"] = timeout;
-    EXPECT_THROW(DefaultSerialFactory().create(info), std::invalid_argument);
+    EXPECT_THROW(DefaultTransportFactory().create(info), std::invalid_argument);
   }
 }
 }  // namespace robotiq_driver::test

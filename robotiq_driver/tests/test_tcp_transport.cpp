@@ -211,10 +211,7 @@ TEST_F(TcpTransportTest, ValidatesSettings)
 {
   EXPECT_THROW(connection_->set_timeout(0ms), std::invalid_argument);
   EXPECT_THROW(connection_->set_timeout(-1ms), std::invalid_argument);
-  EXPECT_THROW(connection_->set_port("127.0.0.2"), std::logic_error);
-  EXPECT_THROW(connection_->set_baudrate(115200), std::logic_error);
-  EXPECT_THROW(connection_->get_baudrate(), std::logic_error);
-  EXPECT_EQ(connection_->get_port(), "127.0.0.1");
+  EXPECT_EQ(connection_->get_host(), "127.0.0.1");
 }
 
 TEST(TcpTransport, RejectsInvalidEndpoint)

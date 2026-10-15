@@ -26,7 +26,7 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
-#include <robotiq_driver/default_serial_factory.hpp>
+#include <robotiq_driver/default_transport_factory.hpp>
 #include <robotiq_driver/default_serial.hpp>
 #include <robotiq_driver/tcp_transport.hpp>
 
@@ -38,7 +38,7 @@
 namespace robotiq_driver
 {
 
-const auto kLogger = rclcpp::get_logger("DefaultSerialFactory");
+const auto kLogger = rclcpp::get_logger("DefaultTransportFactory");
 
 constexpr auto kUsbPortParamName = "COM_port";
 constexpr auto kUsbPortParamDefault = "/dev/ttyUSB0";
@@ -57,7 +57,7 @@ constexpr auto kTcpHostParamName = "tcp_host";
 constexpr auto kTcpPortParamName = "tcp_port";
 constexpr auto kTcpPortParamDefault = "54321";
 
-std::unique_ptr<Serial> DefaultSerialFactory::create(const hardware_interface::HardwareInfo& info) const
+std::unique_ptr<Transport> DefaultTransportFactory::create(const hardware_interface::HardwareInfo& info) const
 {
   RCLCPP_INFO(kLogger, "Reading %s...", kTimeoutParamName);
   double timeout = info.hardware_parameters.count(kTimeoutParamName) ?
@@ -118,16 +118,11 @@ std::unique_ptr<Serial> DefaultSerialFactory::create(const hardware_interface::H
                           kBaudrateAddressParamDefault;
   RCLCPP_INFO(kLogger, "%s: %dbps", kBaudrateParamName, baudrate);
 
-  auto serial = create_serial();
+  auto serial = std::make_unique<DefaultSerial>();
   serial->set_port(usb_port);
   serial->set_baudrate(baudrate);
   serial->set_timeout(timeout_ms);
   return serial;
-}
-
-std::unique_ptr<Serial> DefaultSerialFactory::create_serial() const
-{
-  return std::make_unique<DefaultSerial>();
 }
 
 }  // namespace robotiq_driver

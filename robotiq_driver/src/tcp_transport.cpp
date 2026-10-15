@@ -214,20 +214,6 @@ void TcpTransport::write(const std::vector<uint8_t>& data)
   }
 }
 
-void TcpTransport::set_port(const std::string& host)
-{
-  if (is_open())
-  {
-    throw std::logic_error("Cannot change tcp_host while connected");
-  }
-  host_ = host;
-}
-
-std::string TcpTransport::get_port() const
-{
-  return host_;
-}
-
 void TcpTransport::set_timeout(std::chrono::milliseconds timeout)
 {
   if (timeout.count() <= 0)
@@ -242,14 +228,14 @@ std::chrono::milliseconds TcpTransport::get_timeout() const
   return timeout_;
 }
 
-void TcpTransport::set_baudrate(uint32_t /*baudrate*/)
+std::string TcpTransport::get_host() const
 {
-  throw std::logic_error("Configure baud rate on the remote RS-485 interface");
+  return host_;
 }
 
-uint32_t TcpTransport::get_baudrate() const
+uint16_t TcpTransport::get_port() const
 {
-  throw std::logic_error("TCP transport does not expose remote baud rate");
+  return port_;
 }
 
 void TcpTransport::fail(const std::string& message)

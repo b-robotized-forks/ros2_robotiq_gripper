@@ -28,15 +28,16 @@
 
 #pragma once
 
-#include <robotiq_driver/serial.hpp>
+#include <robotiq_driver/transport.hpp>
+
+#include <string>
 
 namespace robotiq_driver
 {
 /** Raw Modbus RTU byte transport over TCP, e.g. UR tool forwarding on port 54321.
- * Implements Serial to preserve the existing driver API. Baud rate is configured
- * on the remote RS-485 interface, not through this socket.
+ * Baud rate is configured on the remote RS-485 interface, not through this socket.
  */
-class TcpTransport : public Serial
+class TcpTransport : public Transport
 {
 public:
   TcpTransport(const std::string& host, uint16_t port);
@@ -49,14 +50,10 @@ public:
   void close() override;
   [[nodiscard]] std::vector<uint8_t> read(size_t size) override;
   void write(const std::vector<uint8_t>& data) override;
-  // The inherited port accessor denotes the numeric remote IP address.
-  void set_port(const std::string& host) override;
-  [[nodiscard]] std::string get_port() const override;
   void set_timeout(std::chrono::milliseconds timeout) override;
   [[nodiscard]] std::chrono::milliseconds get_timeout() const override;
-  // Unsupported: configure baud rate on the robot instead.
-  void set_baudrate(uint32_t baudrate) override;
-  [[nodiscard]] uint32_t get_baudrate() const override;
+  [[nodiscard]] std::string get_host() const;
+  [[nodiscard]] uint16_t get_port() const;
 
 private:
   using Deadline = std::chrono::steady_clock::time_point;

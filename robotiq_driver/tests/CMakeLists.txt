@@ -26,16 +26,12 @@ target_link_libraries(
 )
 
 ###############################################################################
-# test_default_serial_factory
+# test_default_transport_factory
 
-ament_add_gmock(test_default_serial_factory
-    test_default_serial_factory.cpp
-    mock/mock_serial.hpp
+ament_add_gmock(test_default_transport_factory
+    test_default_transport_factory.cpp
 )
-target_include_directories(test_default_serial_factory
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
-)
-target_link_libraries(test_default_serial_factory robotiq_driver)
+target_link_libraries(test_default_transport_factory robotiq_driver)
 
 ###############################################################################
 # test_default_driver_factory

@@ -30,26 +30,24 @@
 
 #include <memory>
 
-#include <robotiq_driver/serial.hpp>
-
+#include <robotiq_driver/transport_factory.hpp>
 #include <hardware_interface/hardware_info.hpp>
 
 namespace robotiq_driver
 {
 /**
- * This factory is used to create and configure a Serial interface
- * implementation that is used by the driver to interact with the hardware.
- * A factory is used to keep the code cleaner but also to simplify testing.
- * With a factory, we can test that the parameters read by the hardware
- * interface are correctly parsed and passed down to the serial interface.
- * A factory can also be mocked to return different implementation of the
- * serial interface (or mocks) that do not require interaction with the real
- * hardware.
+ * Creates a serial or TCP transport from the hardware parameters.
  */
-class SerialFactory
+class DefaultTransportFactory : public TransportFactory
 {
 public:
-  virtual std::unique_ptr<Serial> create(const hardware_interface::HardwareInfo& info) const = 0;
-};
+  DefaultTransportFactory() = default;
 
+  /**
+   * @brief Create a transport.
+   * @param info The hardware information.
+   * @return A transport to communicate with the hardware.
+   */
+  std::unique_ptr<Transport> create(const hardware_interface::HardwareInfo& info) const override;
+};
 }  // namespace robotiq_driver
