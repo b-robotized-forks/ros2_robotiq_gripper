@@ -38,6 +38,8 @@ namespace robotiq_driver
 class Driver
 {
 public:
+  virtual ~Driver() = default;
+
   enum class ActivationStatus
   {
     RESET,
