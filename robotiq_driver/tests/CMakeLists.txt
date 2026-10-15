@@ -70,3 +70,9 @@ target_include_directories(test_data_utils
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )
 target_link_libraries(test_data_utils robotiq_driver)
+
+###############################################################################
+# Raw TCP transport tests use a local loopback server; no robot required.
+find_package(Threads REQUIRED)
+ament_add_gtest(test_tcp_transport test_tcp_transport.cpp)
+target_link_libraries(test_tcp_transport robotiq_driver Threads::Threads)

@@ -29,6 +29,7 @@
 #include <gtest/gtest.h>
 
 #include <robotiq_driver/default_serial_factory.hpp>
+#include <robotiq_driver/tcp_transport.hpp>
 
 #include <mock/mock_serial.hpp>
 
@@ -95,5 +96,37 @@ TEST(TestDefaultSerialFactory, create_with_given_parameters)
 
   StubSerialFactory serial_factory(std::move(serial));
   auto created_serial = serial_factory.create(info);
+}
+
+TEST(TestDefaultSerialFactory, creates_tcp_transport)
+{
+  hardware_interface::HardwareInfo info;
+  info.hardware_parameters = { { "transport", "tcp" }, { "tcp_host", "127.0.0.1" }, { "timeout", "0.1" } };
+  auto connection = DefaultSerialFactory().create(info);
+  EXPECT_NE(dynamic_cast<TcpTransport*>(connection.get()), nullptr);
+  EXPECT_EQ(connection->get_port(), "127.0.0.1");
+  EXPECT_EQ(connection->get_timeout(), std::chrono::milliseconds(100));
+  EXPECT_FALSE(connection->is_open());
+}
+
+TEST(TestDefaultSerialFactory, rejects_invalid_tcp_configuration)
+{
+  hardware_interface::HardwareInfo info;
+  info.hardware_parameters = { { "transport", "udp" } };
+  EXPECT_THROW(DefaultSerialFactory().create(info), std::invalid_argument);
+  info.hardware_parameters = { { "transport", "tcp" } };
+  EXPECT_THROW(DefaultSerialFactory().create(info), std::invalid_argument);
+  info.hardware_parameters["tcp_host"] = "127.0.0.1";
+  for (const auto* port : { "0", "65536", "-1", "54321oops", "" })
+  {
+    info.hardware_parameters["tcp_port"] = port;
+    EXPECT_THROW(DefaultSerialFactory().create(info), std::invalid_argument);
+  }
+  info.hardware_parameters["tcp_port"] = "54321";
+  for (const auto* timeout : { "0", "-1", "nan", "inf" })
+  {
+    info.hardware_parameters["timeout"] = timeout;
+    EXPECT_THROW(DefaultSerialFactory().create(info), std::invalid_argument);
+  }
 }
 }  // namespace robotiq_driver::test

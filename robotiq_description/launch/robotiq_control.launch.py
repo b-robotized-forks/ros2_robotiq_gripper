@@ -77,6 +77,18 @@ def generate_launch_description():
         )
     )
 
+    for name, default, description in (
+        ("transport", "serial", "Communication transport: serial or tcp"),
+        ("tcp_host", "", "Numeric IP address of the RTU-over-TCP forwarder"),
+        ("tcp_port", "54321", "TCP port of the raw serial forwarder"),
+        ("timeout", "0.5", "Communication timeout in seconds"),
+    ):
+        args.append(
+            launch.actions.DeclareLaunchArgument(
+                name=name, default_value=default, description=description
+            )
+        )
+
     robot_description_content = Command(
         [
             PathJoinSubstitution([FindExecutable(name="xacro")]),
@@ -87,6 +99,14 @@ def generate_launch_description():
             " ",
             "com_port:=",
             LaunchConfiguration("com_port"),
+            " transport:=",
+            LaunchConfiguration("transport"),
+            " tcp_host:=",
+            LaunchConfiguration("tcp_host"),
+            " tcp_port:=",
+            LaunchConfiguration("tcp_port"),
+            " timeout:=",
+            LaunchConfiguration("timeout"),
         ]
     )
 

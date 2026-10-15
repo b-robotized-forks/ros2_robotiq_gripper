@@ -51,6 +51,7 @@ add_library(
   src/default_driver.cpp
   src/default_driver_factory.cpp
   src/fake/fake_driver.cpp
+  src/tcp_transport.cpp
   src/default_serial.cpp
   src/default_serial_factory.cpp
 )
